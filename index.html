@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dividend Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,500;1,300&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1f1f1f;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0ede6;
+    --muted: #7a7872;
+    --accent: #c8f07a;
+    --accent2: #7af0c3;
+    --danger: #f07a7a;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Fraunces', Georgia, serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* HEADER */
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border2);
+    padding-bottom: 1.25rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .masthead-title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .masthead-title em { font-style: italic; color: var(--accent); }
+  .api-status {
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+  }
+  .dot.live { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+  /* API KEY BANNER */
+  .api-banner {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 2rem;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .api-banner a { color: var(--accent); text-decoration: none; }
+  .api-banner a:hover { text-decoration: underline; }
+  .api-key-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .api-key-row input {
+    flex: 1;
+    min-width: 200px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 7px 12px;
+    outline: none;
+  }
+  .api-key-row input:focus { border-color: var(--accent); }
+  .btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface2); border-color: var(--border2); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0e0e0e;
+    font-weight: 500;
+  }
+  .btn.primary:hover { background: #d4f78a; }
+  .btn.danger { border-color: transparent; color: var(--muted); font-size: 13px; padding: 4px 8px; }
+  .btn.danger:hover { color: var(--danger); background: transparent; }
+
+  /* METRICS */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .metric {
+    background: var(--surface);
+    padding: 1.25rem 1.5rem;
+  }
+  .metric-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .metric-value { font-size: 1.75rem; font-weight: 500; line-height: 1; }
+  .metric-value.accent { color: var(--accent); }
+  .metric-value.accent2 { color: var(--accent2); }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ADD ROW */
+  .add-section { margin-bottom: 2rem; }
+  .add-section label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 8px; }
+  .add-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .add-row input {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .add-row input:focus { border-color: var(--accent); }
+  #tickerInput { width: 120px; text-transform: uppercase; }
+  #sharesInput { width: 110px; }
+  .error-msg { font-size: 12px; color: var(--danger); margin-top: 6px; min-height: 18px; }
+
+  /* HOLDINGS TABLE */
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .tbl-head, .tbl-row {
+    display: grid;
+    grid-template-columns: 85px 1fr 80px 90px 110px 80px 44px;
+    gap: 0;
+    align-items: center;
+  }
+  .tbl-head {
+    background: var(--surface2);
+    padding: 10px 16px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .tbl-row {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    transition: background 0.12s;
+  }
+  .tbl-row:first-child { border-top: none; }
+  .tbl-row:hover { background: var(--surface); }
+  .ticker-chip {
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 3px 9px;
+    display: inline-block;
+    color: var(--accent);
+  }
+  .company-name { color: var(--muted); font-size: 12px; }
+  .yield-pill {
+    font-size: 11px;
+    border-radius: 30px;
+    padding: 2px 9px;
+    display: inline-block;
+  }
+  .yield-lo { background: rgba(122,120,114,0.15); color: var(--muted); }
+  .yield-mid { background: rgba(200,240,122,0.12); color: var(--accent); }
+  .yield-hi { background: rgba(122,240,195,0.12); color: var(--accent2); }
+  .annual-val { font-weight: 500; color: var(--text); }
+  .loading-chip {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  /* CHART */
+  .chart-section { margin-bottom: 2rem; }
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    position: relative;
+    height: 240px;
+  }
+
+  /* FOOTER */
+  .footer {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.25rem;
+    line-height: 1.8;
+  }
+  .footer a { color: var(--muted); text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    .tbl-head, .tbl-row {
+      grid-template-columns: 75px 1fr 60px 80px 44px;
+    }
+    .col-yield, .col-price { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="masthead-title">dividend <em>tracker</em></div>
+  <div class="api-status">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">no api key</span>
+  </div>
+</div>
+
+<!-- API KEY BANNER -->
+<div class="api-banner" id="apiBanner">
+  <strong>Step 1:</strong> Get a free API key from
+  <a href="https://financialmodelingprep.com/developer/docs/" target="_blank">Financial Modeling Prep</a>
+  (free tier · no credit card). Then paste it below to load live dividend data.
+  <div class="api-key-row">
+    <input type="text" id="apiKeyInput" placeholder="Paste your FMP API key here..." />
+    <button class="btn primary" onclick="saveApiKey()">Connect</button>
+    <button class="btn" onclick="useDemoMode()">Use demo data instead</button>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-label">Annual income</div>
+    <div class="metric-value accent" id="m-annual">—</div>
+    <div class="metric-sub">projected</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Monthly avg</div>
+    <div class="metric-value" id="m-monthly">—</div>
+    <div class="metric-sub">estimate</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Portfolio value</div>
+    <div class="metric-value" id="m-value">—</div>
+    <div class="metric-sub">market price</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Avg yield</div>
+    <div class="metric-value accent2" id="m-yield">—</div>
+    <div class="metric-sub">weighted</div>
+  </div>
+</div>
+
+<!-- ADD HOLDING -->
+<div class="add-section">
+  <label>Add a holding</label>
+  <div class="add-row">
+    <input type="text" id="tickerInput" placeholder="Ticker" maxlength="6" />
+    <input type="number" id="sharesInput" placeholder="Shares" min="1" step="1" />
+    <button class="btn primary" onclick="addHolding()">+ Add</button>
+  </div>
+  <div class="error-msg" id="errorMsg"></div>
+</div>
+
+<!-- HOLDINGS TABLE -->
+<div class="table-wrap">
+  <div class="tbl-head">
+    <span>Ticker</span>
+    <span>Company</span>
+    <span>Shares</span>
+    <span class="col-yield">Yield</span>
+    <span class="col-price">Price</span>
+    <span>Annual inc</span>
+    <span></span>
+  </div>
+  <div id="holdingsList">
+    <div class="empty-state">
+      Connect your API key above, then add a ticker like AAPL, KO, or VZ.
+    </div>
+  </div>
+</div>
+
+<!-- CHART -->
+<div class="chart-section">
+  <div class="section-label">Monthly income by holding</div>
+  <div class="chart-wrap">
+    <canvas id="incomeChart" role="img" aria-label="Bar chart of projected monthly dividend income by holding"></canvas>
+  </div>
+</div>
+
+<div class="footer">
+  Data provided by <a href="https://financialmodelingprep.com" target="_blank">Financial Modeling Prep</a>.
+  This tool is for informational purposes only — not financial advice.
+  Your API key and holdings are stored only in your browser's localStorage.
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ─── DEMO DATA (used when no API key) ───────────────────────────────────────
+const DEMO_DB = {
+  AAPL: { name: "Apple Inc.", price: 189.30, divPerShare: 0.99, yield: 0.52 },
+  MSFT: { name: "Microsoft Corp.", price: 415.20, divPerShare: 3.00, yield: 0.72 },
+  JNJ:  { name: "Johnson & Johnson", price: 147.80, divPerShare: 4.76, yield: 3.22 },
+  KO:   { name: "Coca-Cola Co.", price: 60.50, divPerShare: 1.94, yield: 3.21 },
+  VZ:   { name: "Verizon Comms.", price: 39.20, divPerShare: 2.66, yield: 6.79 },
+  T:    { name: "AT&T Inc.", price: 17.80, divPerShare: 1.11, yield: 6.24 },
+  PG:   { name: "Procter & Gamble", price: 162.40, divPerShare: 3.76, yield: 2.31 },
+  XOM:  { name: "ExxonMobil Corp.", price: 110.60, divPerShare: 3.80, yield: 3.44 },
+  ABBV: { name: "AbbVie Inc.", price: 168.90, divPerShare: 6.20, yield: 3.67 },
+  O:    { name: "Realty Income Corp.", price: 52.30, divPerShare: 3.07, yield: 5.87 },
+  MCD:  { name: "McDonald's Corp.", price: 278.50, divPerShare: 6.68, yield: 2.40 },
+  HD:   { name: "Home Depot Inc.", price: 342.10, divPerShare: 9.00, yield: 2.63 },
+  SCHD: { name: "Schwab US Dividend ETF", price: 79.40, divPerShare: 2.74, yield: 3.45 },
+  VYM:  { name: "Vanguard High Div ETF", price: 115.20, divPerShare: 3.40, yield: 2.95 },
+  JEPI: { name: "JPMorgan Equity Prem.", price: 57.80, divPerShare: 5.42, yield: 9.38 },
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let apiKey = localStorage.getItem("fmp_api_key") || "";
+let demoMode = localStorage.getItem("demo_mode") === "true";
+let holdings = JSON.parse(localStorage.getItem("holdings") || "[]");
+let cache = {};
+let chart = null;
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  if (apiKey) {
+    activateLiveMode();
+  } else if (demoMode) {
+    activateDemoMode();
+  }
+  // Pre-fill demo holdings if fresh start
+  if (holdings.length === 0 && demoMode) {
+    holdings = [{ ticker: "KO", shares: 50 }, { ticker: "VZ", shares: 30 }, { ticker: "SCHD", shares: 100 }];
+    saveHoldings();
+  }
+  if (apiKey || demoMode) renderAll();
+});
+
+// ─── API KEY MANAGEMENT ──────────────────────────────────────────────────────
+function saveApiKey() {
+  const key = document.getElementById("apiKeyInput").value.trim();
+  if (!key) { showError("Please paste your API key."); return; }
+  apiKey = key;
+  demoMode = false;
+  localStorage.setItem("fmp_api_key", apiKey);
+  localStorage.removeItem("demo_mode");
+  activateLiveMode();
+  renderAll();
+}
+
+function useDemoMode() {
+  demoMode = true;
+  localStorage.setItem("demo_mode", "true");
+  if (holdings.length === 0) {
+    holdings = [{ ticker: "KO", shares: 50 }, { ticker: "VZ", shares: 30 }, { ticker: "SCHD", shares: 100 }];
+    saveHoldings();
+  }
+  activateDemoMode();
+  renderAll();
+}
+
+function activateLiveMode() {
+  document.getElementById("apiBanner").style.display = "none";
+  document.getElementById("statusDot").className = "dot live";
+  document.getElementById("statusText").textContent = "live data";
+}
+
+function activateDemoMode() {
+  document.getElementById("apiBanner").style.display = "none";
+  document.getElementById("statusDot").className = "dot";
+  document.getElementById("statusText").textContent = "demo mode";
+}
+
+// ─── DATA FETCHING ───────────────────────────────────────────────────────────
+async function fetchStockData(ticker) {
+  if (demoMode) {
+    return DEMO_DB[ticker] || null;
+  }
+  if (cache[ticker]) return cache[ticker];
+
+  try {
+    // Fetch quote (price) and dividend history in parallel
+    const [quoteRes, divRes] = await Promise.all([
+      fetch(`https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${apiKey}`),
+      fetch(`https://financialmodelingprep.com/api/v3/historical/stock_dividend/${ticker}?limit=5&apikey=${apiKey}`)
+    ]);
+    const quoteData = await quoteRes.json();
+    const divData = await divRes.json();
+
+    if (!quoteData || quoteData.length === 0) return null;
+
+    const q = quoteData[0];
+    const price = q.price || 0;
+    const divHistory = divData?.historical || [];
+
+    // Sum last 4 dividends for annual estimate
+    const recentDivs = divHistory.slice(0, 4);
+    const annualDiv = recentDivs.reduce((sum, d) => sum + (d.dividend || 0), 0);
+    const divYield = price > 0 ? (annualDiv / price) * 100 : 0;
+
+    const result = {
+      name: q.name || ticker,
+      price: price,
+      divPerShare: annualDiv,
+      yield: divYield,
+    };
+    cache[ticker] = result;
+    return result;
+  } catch (e) {
+    console.error("API error for", ticker, e);
+    return null;
+  }
+}
+
+// ─── HOLDINGS CRUD ───────────────────────────────────────────────────────────
+function saveHoldings() {
+  localStorage.setItem("holdings", JSON.stringify(holdings));
+}
+
+async function addHolding() {
+  const ticker = document.getElementById("tickerInput").value.trim().toUpperCase();
+  const shares = parseInt(document.getElementById("sharesInput").value);
+  clearError();
+
+  if (!ticker) { showError("Enter a ticker symbol."); return; }
+  if (!shares || shares < 1) { showError("Enter a valid share count."); return; }
+  if (holdings.find(h => h.ticker === ticker)) { showError(`${ticker} is already tracked.`); return; }
+
+  if (!apiKey && !demoMode) {
+    showError("Connect your API key or use demo mode first.");
+    return;
+  }
+
+  const data = await fetchStockData(ticker);
+  if (!data) { showError(`Could not find data for "${ticker}". Check the ticker and try again.`); return; }
+
+  holdings.push({ ticker, shares });
+  saveHoldings();
+  document.getElementById("tickerInput").value = "";
+  document.getElementById("sharesInput").value = "";
+  renderAll();
+}
+
+function removeHolding(ticker) {
+  holdings = holdings.filter(h => h.ticker !== ticker);
+  saveHoldings();
+  renderAll();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+async function renderAll() {
+  const list = document.getElementById("holdingsList");
+
+  if (holdings.length === 0) {
+    list.innerHTML = '<div class="empty-state">No holdings yet.<br>Add a ticker above (try AAPL, KO, VZ, SCHD, JEPI).</div>';
+    setMetrics(0, 0, 0);
+    updateChart([], []);
+    return;
+  }
+
+  // Show loading placeholders
+  list.innerHTML = holdings.map(h => `
+    <div class="tbl-row" id="row-${h.ticker}">
+      <span class="ticker-chip">${h.ticker}</span>
+      <span class="company-name loading-chip">loading…</span>
+      <span>${h.shares.toLocaleString()}</span>
+      <span class="col-yield">—</span>
+      <span class="col-price">—</span>
+      <span>—</span>
+      <span><button class="btn danger" onclick="removeHolding('${h.ticker}')">✕</button></span>
+    </div>`).join("");
+
+  // Fetch all in parallel, then render
+  const results = await Promise.all(holdings.map(h => fetchStockData(h.ticker)));
+
+  let totalAnnual = 0, totalValue = 0, weightedYield = 0;
+  const chartLabels = [], chartData = [];
+
+  results.forEach((d, i) => {
+    const h = holdings[i];
+    const row = document.getElementById(`row-${h.ticker}`);
+    if (!row) return;
+
+    if (!d) {
+      row.querySelector(".company-name").textContent = "data unavailable";
+      return;
+    }
+
+    const annual = d.divPerShare * h.shares;
+    const val = d.price * h.shares;
+    totalAnnual += annual;
+    totalValue += val;
+    weightedYield += d.yield * val;
+
+    chartLabels.push(h.ticker);
+    chartData.push(parseFloat((annual / 12).toFixed(2)));
+
+    let yieldClass = "yield-lo";
+    if (d.yield >= 5) yieldClass = "yield-hi";
+    else if (d.yield >= 2) yieldClass = "yield-mid";
+
+    row.innerHTML = `
+      <span class="ticker-chip">${h.ticker}</span>
+      <span class="company-name">${d.name}</span>
+      <span>${h.shares.toLocaleString()}</span>
+      <span class="col-yield"><span class="yield-pill ${yieldClass}">${d.yield.toFixed(1)}%</span></span>
+      <span class="col-price">$${d.price.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+      <span class="annual-val">$${annual.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+      <span><button class="btn danger" onclick="removeHolding('${h.ticker}')">✕</button></span>
+    `;
+  });
+
+  const avgYield = totalValue > 0 ? weightedYield / totalValue : 0;
+  setMetrics(totalAnnual, totalValue, avgYield);
+  updateChart(chartLabels, chartData);
+}
+
+function setMetrics(annual, value, yield_) {
+  document.getElementById("m-annual").textContent = annual > 0
+    ? "$" + annual.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
+  document.getElementById("m-monthly").textContent = annual > 0
+    ? "$" + (annual / 12).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
+  document.getElementById("m-value").textContent = value > 0
+    ? "$" + value.toLocaleString("en-US", {minimumFractionDigits:0, maximumFractionDigits:0}) : "—";
+  document.getElementById("m-yield").textContent = yield_ > 0
+    ? yield_.toFixed(1) + "%" : "—";
+}
+
+function updateChart(labels, data) {
+  if (chart) { chart.destroy(); chart = null; }
+  if (labels.length === 0) return;
+
+  const COLORS = ["#c8f07a","#7af0c3","#7ab8f0","#f0c87a","#f07aab","#c87af0","#7af0f0","#f0a07a"];
+  const ctx = document.getElementById("incomeChart").getContext("2d");
+  chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Monthly income ($)",
+        data,
+        backgroundColor: labels.map((_, i) => COLORS[i % COLORS.length] + "33"),
+        borderColor: labels.map((_, i) => COLORS[i % COLORS.length]),
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#1f1f1f",
+          borderColor: "rgba(255,255,255,0.1)",
+          borderWidth: 1,
+          titleColor: "#f0ede6",
+          bodyColor: "#c8f07a",
+          callbacks: { label: ctx => `$${ctx.parsed.y.toFixed(2)}/mo` }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: "rgba(255,255,255,0.04)" },
+          ticks: { color: "#7a7872", font: { family: "'DM Mono', monospace", size: 12 } }
+        },
+        y: {
+          grid: { color: "rgba(255,255,255,0.04)" },
+          ticks: {
+            color: "#7a7872",
+            font: { family: "'DM Mono', monospace", size: 11 },
+            callback: v => "$" + v
+          }
+        }
+      }
+    }
+  });
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function showError(msg) { document.getElementById("errorMsg").textContent = msg; }
+function clearError() { document.getElementById("errorMsg").textContent = ""; }
+</script>
+</body>
+</html>
